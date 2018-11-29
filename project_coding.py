@@ -43,7 +43,7 @@ class AI:
         return self.ai.get_strategy()
 
 class Game:
-    def __init__(self, steering):
+    def __init__(self):
         self.world_width = 1200
         self.world_height = 700
         self.window = pygame.display.set_mode((self.world_width, self.world_height))
@@ -104,5 +104,5 @@ class Game:
         pygame.quit()
 
 if __name__ == "__main__" :
-    game = Game(sys.argv[1])
+    game = Game()
     game.on_execute()
