@@ -6,6 +6,8 @@ class Missle_with_AI:
         self.kinematic = kinematic
         self.player = player
         self.ai = FSM_AI(self, player)
+        self.bombed = False
+        self.bomb_time = None
 
     def move(self):
         # Get AI strategy based on the current position of missle and player
@@ -14,10 +16,19 @@ class Missle_with_AI:
         steering = strategy.getSteering(self.kinematic, self.player.kinematic)
         self.kinematic.update(steering)
 
-    def did_hit(self):
+    def did_hit_player(self):
         dis = st.Vec2D.sub(self.kinematic.position, self.player.kinematic.position)
-        if dis.length() <= 1:
+        if dis.length() <= 2:
             return True
+        return False
+        
+    def did_hit_other_missles(self, missles):
+        for another_missle in missles:
+            if another_missle == self: 
+                continue
+            dis = st.Vec2D.sub(self.kinematic.position, another_missle.kinematic.position)
+            if dis.length() <= 2:
+                return True
         return False
 
 class Player:
@@ -64,6 +75,11 @@ class Game:
         self.add_missle_interval = 3 * 1000 # in sec
         pygame.init()
         self.last = pygame.time.get_ticks()
+        self.display_bomb_interval = 500
+
+        tmp = pygame.image.load("bomb.png")
+        self.bomb_surf = pygame.transform.scale(tmp, (30,30))
+        
 
     def add_missle(self):
         missle = Missle_with_AI(
@@ -79,6 +95,7 @@ class Game:
             if now - self.last >= self.add_missle_interval:
                 self.add_missle()
                 self.last = now
+
 
             pygame.event.pump()
 
@@ -101,22 +118,33 @@ class Game:
             self.window.fill((0,0,0))
             self.human.kinematic.draw(self.window, (255,0,0))
             for missle in self.missles:
+                if missle.bombed: 
+                    self.window.blit(self.bomb_surf,(missle.kinematic.position.x, missle.kinematic.position.y))
+                    if now - missle.bomb_time > self.display_bomb_interval:
+                        self.missles.remove(missle)
+                    continue
+
                 # Apply AI logic
                 missle.move()
                 # Draw
                 missle.kinematic.draw(self.window, (0,255,0))
-                # Check hit
-                if missle.did_hit():
+                # Check if hit player
+                if missle.did_hit_player():
                     self._running = False
-
-            pygame.display.flip()
+                    self.window.blit(self.bomb_surf,(missle.kinematic.position.x, missle.kinematic.position.y))
+                # When missle hit each other, bomb
+                if missle.did_hit_other_missles(self.missles):
+                    missle.bombed = True
+                    missle.bomb_time = now
 
             # Check border
             if (self.human.kinematic.position.x >= self.world_width or self.human.kinematic.position.x < 0 or 
                 self.human.kinematic.position.y >= self.world_height or self.human.kinematic.position.y < 0):
                 self._running = False
+            pygame.display.flip()
 
         pygame.quit()
+
 
 if __name__ == "__main__" :
     game = Game()
