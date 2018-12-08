@@ -1,13 +1,24 @@
 from strategy import *
 from FSM_AI import *
 
-class Missle: 
-    def __init__(self, kinematic):
+class Missle_with_AI: 
+    def __init__(self, kinematic, player):
         self.kinematic = kinematic
+        self.player = player
+        self.ai = FSM_AI(self, player)
 
-    def move(self, strategy, target_kinematic=None):
-        steering = strategy.getSteering(self.kinematic, target_kinematic)
+    def move(self):
+        # Get AI strategy based on the current position of missle and player
+        strategy = self.ai.get_strategy()
+
+        steering = strategy.getSteering(self.kinematic, self.player.kinematic)
         self.kinematic.update(steering)
+
+    def did_hit(self):
+        dis = st.Vec2D.sub(self.kinematic.position, self.player.kinematic.position)
+        if dis.length() <= 1:
+            return True
+        return False
 
 class Player:
     def __init__(self, kinematic, X, Y, moving_speed=3):
@@ -34,37 +45,41 @@ class Player:
         self.kinematic.linear_velocity.y = self.moving_speed
         self.kinematic.update()
 
-class AI:
-    def __init__(self, missle, player):
-        self.ai = FSM_AI(missle, player)
-
-    # Get AI strategy based on the current position of missle and player
-    def get_strategy(self):
-        return self.ai.get_strategy()
-
 class Game:
     def __init__(self):
         self.world_width = 1200
         self.world_height = 700
         self.window = pygame.display.set_mode((self.world_width, self.world_height))
 
-        self.missle = Missle(
-            Kinematic(
-                Vec2D(randint(100,self.world_width-100),randint(100, self.world_height-100)),
-                Vec2D(0.1, 0.1)))
         self.human = Player(
             Kinematic(
                 Vec2D(randint(100,self.world_width-100),randint(100, self.world_height-100))),
             self.world_width,
             self.world_height)
-
-        self.AI = AI(self.missle, self.human)
+        self.missles = []
+        self.add_missle()
 
         self._running = True
+
+        self.add_missle_interval = 3 * 1000 # in sec
         pygame.init()
+        self.last = pygame.time.get_ticks()
+
+    def add_missle(self):
+        missle = Missle_with_AI(
+            Kinematic(
+                Vec2D(randint(100,self.world_width-100),randint(100, self.world_height-100)),
+                Vec2D(0.1, 0.1)),
+            self.human)
+        self.missles.append(missle)
 
     def on_execute(self):
         while(self._running):
+            now = pygame.time.get_ticks()
+            if now - self.last >= self.add_missle_interval:
+                self.add_missle()
+                self.last = now
+
             pygame.event.pump()
 
             # Get the key of the player
@@ -82,23 +97,23 @@ class Game:
             if (keys[K_DOWN]):
                 self.human.moveDown()
 
-            # Apply AI logic here
-            missle_strategy = self.AI.get_strategy()
-            self.missle.move(missle_strategy, self.human.kinematic)
-
-            # Draw
+            # Update and draw
             self.window.fill((0,0,0))
-            self.missle.kinematic.draw(self.window, (0,255,0))
             self.human.kinematic.draw(self.window, (255,0,0))
+            for missle in self.missles:
+                # Apply AI logic
+                missle.move()
+                # Draw
+                missle.kinematic.draw(self.window, (0,255,0))
+                # Check hit
+                if missle.did_hit():
+                    self._running = False
+
             pygame.display.flip()
 
-            # Check alive
+            # Check border
             if (self.human.kinematic.position.x >= self.world_width or self.human.kinematic.position.x < 0 or 
                 self.human.kinematic.position.y >= self.world_height or self.human.kinematic.position.y < 0):
-                self._running = False
-
-            if (self.missle.kinematic.position.x >= self.world_width or self.missle.kinematic.position.x < 0 or 
-            self.missle.kinematic.position.y >= self.world_height or self.missle.kinematic.position.y < 0):
                 self._running = False
 
         pygame.quit()
