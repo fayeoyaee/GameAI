@@ -1,5 +1,10 @@
-from kinematics import * 
+import strategy as st
 
+'''
+A finite state machine AI with the following transition:
+Wander -> Approach: when distance between missle and player <= dis_to_start_attack
+Approach -> Wander: when distance between missle and player > dis_to_start_attack
+'''
 class Transition():
     def __init__(self, toState):
         self.toState = toState
@@ -14,28 +19,28 @@ class State(object):
     def Execute(self):
         pass
         
-class MisselWanderState(State):
+class Wander(State):
     def __init__(self, FSM):
-        super(MisselWanderState, self).__init__(FSM)
-        self.strategy = Wander()
+        super(Wander, self).__init__(FSM)
+        self.strategy = st.Wander()
 
     def Execute(self):
-        dis = Vec2D.sub(self.FSM.missle.kinematic.position, self.FSM.player.kinematic.position)
+        dis = st.Vec2D.sub(self.FSM.missle.kinematic.position, self.FSM.player.kinematic.position)
         if dis.length() <= self.FSM.dis_to_start_attack:
             self.FSM.ToTransition("toApproach")
 
-class ApproachState(State):
+class Approach(State):
     def __init__(self, FSM):
-        super(ApproachState, self).__init__(FSM)
-        self.strategy = Seek()
+        super(Approach, self).__init__(FSM)
+        self.strategy = st.Seek()
 
     def Execute(self):
-        dis = Vec2D.sub(self.FSM.missle.kinematic.position, self.FSM.player.kinematic.position)
+        dis = st.Vec2D.sub(self.FSM.missle.kinematic.position, self.FSM.player.kinematic.position)
         if dis.length() > self.FSM.dis_to_start_attack:
-            self.FSM.ToTransition("toMissleWander")
+            self.FSM.ToTransition("toWander")
 
 class FSM():
-    def __init__(self, missle, player, dis_to_start_attack = 100):
+    def __init__(self, missle, player, dis_to_start_attack = 200):
         self.missle = missle
         self.player = player
         self.states = {}
@@ -65,23 +70,22 @@ class FSM():
 
 class FSM_AI():
     def __init__(self, missle, player):
-        self.MisselFSM = FSM(missle, player)
+        self.fsm = FSM(missle, player)
 
         # States 
-        self.MisselFSM.AddState("MissleWander", MisselWanderState(self.MisselFSM))
-        self.MisselFSM.AddState("Approach", ApproachState(self.MisselFSM))
+        self.fsm.AddState("Wander", Wander(self.fsm))
+        self.fsm.AddState("Approach", Approach(self.fsm))
 
         # Transitions 
-        self.MisselFSM.AddTransition("toMissleWander", Transition("MissleWander"))
-        self.MisselFSM.AddTransition("toApproach", Transition("Approach"))
+        self.fsm.AddTransition("toWander", Transition("Wander"))
+        self.fsm.AddTransition("toApproach", Transition("Approach"))
 
         # Set initial state
-        self.MisselFSM.SetState("MissleWander")
+        self.fsm.SetState("Wander")
 
-    def Execute(self):
-        self.MisselFSM.Execute()
+    def get_strategy(self):
+        # Execute FSM
+        self.fsm.Execute()
 
-    def get_strategy (self):
-        self.Execute()
-        return self.MisselFSM.curState.strategy
-        
+        # Return the current strategy in FSM
+        return self.fsm.curState.strategy

@@ -1,5 +1,5 @@
-from kinematics import *
-from state_machine_ai import *
+from strategy import *
+from FSM_AI import *
 
 class Missle: 
     def __init__(self, kinematic):
