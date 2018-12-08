@@ -95,7 +95,7 @@ class Steering:
         self.angular = 0
 
 class Kinematic:
-    def __init__(self, position=Vec2D(0,0), linear_velocity=Vec2D(0,0), orientation=-math.pi/2, angular_velocity=0, max_speed=1, max_angular_velocity=0.03):
+    def __init__(self, position=Vec2D(0,0), linear_velocity=Vec2D(0,0), orientation=-math.pi/2, angular_velocity=0, max_speed=2, max_angular_velocity=0.03):
         """ 
             position: Vec2D, default (0,0)
             linear_velocity: Vec2D, default (0,0)
