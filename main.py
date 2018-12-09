@@ -77,8 +77,9 @@ class Game:
         self.last = pygame.time.get_ticks()
         self.display_bomb_interval = 500
 
-        tmp = pygame.image.load("bomb.png")
-        self.bomb_surf = pygame.transform.scale(tmp, (30,30))
+        self.bomb_surf = pygame.transform.scale(pygame.image.load("bomb.png"), (30,30))
+        self.plane_surf = pygame.transform.scale(pygame.image.load("plane.jpeg"), (20,20))
+        self.missle_surf = pygame.transform.scale(pygame.image.load("missle.jpeg"), (20,20))
         
 
     def add_missle(self):
@@ -116,7 +117,7 @@ class Game:
 
             # Update and draw
             self.window.fill((0,0,0))
-            self.human.kinematic.draw(self.window, (255,0,0))
+            self.window.blit(pygame.transform.rotate(self.plane_surf, self.human.kinematic.orientation),(self.human.kinematic.position.x, self.human.kinematic.position.y))
             for missle in self.missles:
                 if missle.bombed: 
                     self.window.blit(self.bomb_surf,(missle.kinematic.position.x, missle.kinematic.position.y))
