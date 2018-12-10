@@ -74,6 +74,7 @@ class Game:
 
         self.add_missle_interval = 3 * 1000 # in sec
         pygame.init()
+        pygame.font.init()
         self.last = pygame.time.get_ticks()
         self.display_bomb_interval = 500
 
@@ -91,61 +92,73 @@ class Game:
         self.missles.append(missle)
 
     def on_execute(self):
-        while(self._running):
+        start_time = pygame.time.get_ticks()
+        while True:
             now = pygame.time.get_ticks()
-            if now - self.last >= self.add_missle_interval:
-                self.add_missle()
-                self.last = now
-
-
             pygame.event.pump()
+            if self._running:
+                print "running"
+                if now - self.last >= self.add_missle_interval:
+                    self.add_missle()
+                    self.last = now
 
-            # Get the key of the player
-            keys = pygame.key.get_pressed() 
+                # Get the key of the player
+                keys = pygame.key.get_pressed() 
 
-            # Move
-            if (keys[K_ESCAPE]):
-                self._running = False
-            if (keys[K_RIGHT]):
-                self.human.moveRight()
-            if (keys[K_LEFT]):
-                self.human.moveLeft()
-            if (keys[K_UP]):
-                self.human.moveUp()
-            if (keys[K_DOWN]):
-                self.human.moveDown()
-
-            # Update and draw
-            self.window.fill((0,0,0))
-            self.window.blit(pygame.transform.rotate(self.plane_surf, self.human.kinematic.orientation),(self.human.kinematic.position.x, self.human.kinematic.position.y))
-            for missle in self.missles:
-                if missle.bombed: 
-                    self.window.blit(self.bomb_surf,(missle.kinematic.position.x, missle.kinematic.position.y))
-                    if now - missle.bomb_time > self.display_bomb_interval:
-                        self.missles.remove(missle)
-                    continue
-
-                # Apply AI logic
-                missle.move()
-                # Draw
-                missle.kinematic.draw(self.window, (0,255,0))
-                # Check if hit player
-                if missle.did_hit_player():
+                # Move
+                if (keys[K_ESCAPE]):
                     self._running = False
-                    self.window.blit(self.bomb_surf,(missle.kinematic.position.x, missle.kinematic.position.y))
-                # When missle hit each other, bomb
-                if missle.did_hit_other_missles(self.missles):
-                    missle.bombed = True
-                    missle.bomb_time = now
+                if (keys[K_RIGHT]):
+                    self.human.moveRight()
+                if (keys[K_LEFT]):
+                    self.human.moveLeft()
+                if (keys[K_UP]):
+                    self.human.moveUp()
+                if (keys[K_DOWN]):
+                    self.human.moveDown()
 
-            # Check border
-            if (self.human.kinematic.position.x >= self.world_width or self.human.kinematic.position.x < 0 or 
-                self.human.kinematic.position.y >= self.world_height or self.human.kinematic.position.y < 0):
-                self._running = False
+                # Update and draw
+                self.window.fill((0,0,0))
+                self.window.blit(pygame.transform.rotate(self.plane_surf, self.human.kinematic.orientation),(self.human.kinematic.position.x, self.human.kinematic.position.y))
+                for missle in self.missles:
+                    if missle.bombed: 
+                        self.window.blit(self.bomb_surf,(missle.kinematic.position.x, missle.kinematic.position.y))
+                        if now - missle.bomb_time > self.display_bomb_interval:
+                            self.missles.remove(missle)
+                        continue
+
+                    # Apply AI logic
+                    missle.move()
+                    # Draw
+                    missle.kinematic.draw(self.window, (0,255,0))
+                    # Check if hit player
+                    if missle.did_hit_player():
+                        self._running = False
+                        self.window.blit(self.bomb_surf,(missle.kinematic.position.x, missle.kinematic.position.y))
+                        end_time = now
+                    # When missle hit each other, bomb
+                    if missle.did_hit_other_missles(self.missles):
+                        missle.bombed = True
+                        missle.bomb_time = now
+
+                # Check border
+                if (self.human.kinematic.position.x >= self.world_width or self.human.kinematic.position.x < 0 or 
+                    self.human.kinematic.position.y >= self.world_height or self.human.kinematic.position.y < 0):
+                    self._running = False
+                    end_time = now
+
+            else:
+                self.window.fill((0,0,0))
+                GAME_FONT = pygame.font.SysFont('Comic Sans MS', 30)
+                text_surface = GAME_FONT.render("You survived " + str((end_time - start_time) / 1000) + " seconds", False, (255, 0, 0))
+                self.window.blit(text_surface, (0, 0))
+                pygame.display.flip()
+                if now - end_time > 3000:
+                    break
+
             pygame.display.flip()
 
         pygame.quit()
-
 
 if __name__ == "__main__" :
     game = Game()
